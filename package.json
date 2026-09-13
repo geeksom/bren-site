@@ -1,0 +1,14 @@
+{
+  "name": "bren-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static marketing site for Bren (fictional) at getbren.com — zero-dependency Node build",
+  "scripts": {
+    "build": "node build.js",
+    "serve": "python3 -m http.server -d docs 8080",
+    "check": "node build.js --check"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
