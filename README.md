@@ -34,6 +34,16 @@ git add -A && git commit -m "Update copy" && git push
 
 GitHub Pages publishes `docs/` from `main` within about a minute of the push.
 
+## Publishing without the custom domain
+
+The default build targets `https://getbren.com` (root-relative links + a `CNAME` file). To publish instead as a GitHub **project page** under a sub-path — useful while a domain is being sorted out — build with a base path:
+
+```bash
+BASE_PATH=/bren-site SITE_URL=https://geeksom.github.io npm run build
+```
+
+That prefixes every root-relative link, rewrites canonicals and the sitemap, and skips the `CNAME` file. Run `npm run build` with no variables to go back to the custom-domain build.
+
 ## Adding the Konvars widget
 
 Open `src/layout.js`, paste the embed snippet into `KONVARS_SNIPPET`, run `npm run build`, commit and push. The snippet is injected right before `</body>` on all 25 pages.

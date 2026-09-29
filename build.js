@@ -11,6 +11,16 @@ const SRC = path.join(ROOT, 'src');
 const { layout } = require(path.join(SRC, 'layout.js'));
 const { SITE } = require(path.join(SRC, 'content', 'site.js'));
 
+// BASE_PATH lets the site be published somewhere other than a domain root — e.g. a
+// GitHub project page at https://<user>.github.io/bren-site. Default is empty, which
+// keeps every link root-relative for the custom domain. When set, the CNAME is skipped
+// (a custom domain and a sub-path are mutually exclusive) and root-relative href/src
+// attributes are prefixed. Example:  BASE_PATH=/bren-site node build.js
+const BASE = (process.env.BASE_PATH || '').replace(/\/$/, '');
+const SITE_URL = process.env.SITE_URL || SITE.url;
+const withBase = (html) =>
+  BASE ? html.replace(/(href|src)="\/(?!\/)/g, `$1="${BASE}/`) : html;
+
 const write = (rel, content) => {
   const file = path.join(OUT, rel);
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -37,7 +47,7 @@ for (const f of fs.readdirSync(featDir).sort()) {
 
 const written = [];
 for (const page of pages) {
-  const html = layout(page);
+  const html = withBase(layout(page)).split(SITE.url).join(SITE_URL);
   const rel = page.file || (page.path === '' ? 'index.html' : path.join(page.path, 'index.html'));
   write(rel, html);
   written.push(rel);
@@ -50,10 +60,10 @@ for (const a of ['styles.css', 'site.js', 'favicon.svg', 'og.svg']) {
 }
 
 // ---- GitHub Pages plumbing ----
-write('CNAME', `${SITE.domain}\n`);
+if (!BASE) write('CNAME', `${SITE.domain}\n`);
 write('.nojekyll', '');
-write('robots.txt', `User-agent: *\nAllow: /\nSitemap: ${SITE.url}/sitemap.xml\n`);
-const urls = pages.filter((p) => !p.file && !p.noindex).map((p) => `${SITE.url}/${p.path}`);
+write('robots.txt', `User-agent: *\nAllow: /\nSitemap: ${SITE_URL}${BASE}/sitemap.xml\n`);
+const urls = pages.filter((p) => !p.file && !p.noindex).map((p) => `${SITE_URL}${BASE}/${p.path}`);
 write(
   'sitemap.xml',
   `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
@@ -61,7 +71,7 @@ write(
     .join('\n')}\n</urlset>\n`
 );
 
-console.log(`Built ${written.length} pages → docs/`);
+console.log(`Built ${written.length} pages → docs/${BASE ? `  (base path ${BASE}, no CNAME)` : ''}`);
 
 // ---- Optional link check ----
 if (process.argv.includes('--check')) {
@@ -70,7 +80,9 @@ if (process.argv.includes('--check')) {
   for (const rel of written) {
     const html = fs.readFileSync(path.join(OUT, rel), 'utf8');
     for (const m of html.matchAll(/href="(\/[^"#?]*)/g)) {
-      const href = m[1];
+      let href = m[1];
+      if (BASE && href.startsWith(BASE + '/')) href = href.slice(BASE.length);
+      else if (BASE && href === BASE) href = '/';
       if (href.startsWith('/assets/')) {
         if (!fs.existsSync(path.join(OUT, href))) { console.error(`  missing asset ${href} in ${rel}`); bad++; }
         continue;

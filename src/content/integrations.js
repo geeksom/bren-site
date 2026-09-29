@@ -13,8 +13,17 @@ const card = (i) => `<div class="int">
   <p class="muted">${c.esc(i.plan)}</p>
 </div>`;
 
+// Group-level direction label, derived from the cards themselves so it can never
+// contradict the per-integration badges (e.g. Documentation is incoming except Notion).
+const groupDir = (list) => {
+  const two = list.filter((i) => i.dir === '2-way');
+  if (two.length === list.length) return 'two-way';
+  if (two.length === 0) return 'incoming';
+  return `incoming, except ${two.map((i) => i.name).join(' and ')}`;
+};
+
 const grouped = Object.keys(groups)
-  .map((g) => `<h2 style="margin-top:40px;font-size:1.5rem">${c.esc(g)} <span class="muted" style="font-size:.9rem;font-weight:400">· ${groups[g][0].dir === '2-way' && g !== 'Documentation' ? 'two-way' : 'incoming'}</span></h2><div class="int-grid">${groups[g].map(card).join('')}</div>`)
+  .map((g) => `<h2 style="margin-top:40px;font-size:1.5rem">${c.esc(g)} <span class="muted" style="font-size:.9rem;font-weight:400">· ${groupDir(groups[g])}</span></h2><div class="int-grid">${groups[g].map(card).join('')}</div>`)
   .join('');
 
 const faqItems = [
